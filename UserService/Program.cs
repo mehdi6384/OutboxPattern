@@ -11,17 +11,15 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<UserServiceContext>(options =>
-         options.UseSqlite(@"Data Source=user.db"));
+         options.UseInMemoryDatabase("user-db"));
 
 var app = builder.Build();
-//var dbContext = new UserServiceContext(new DbContextOptions<UserServiceContext>());
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-    //dbContext.Database.EnsureCreated();
 }
 
 app.UseAuthorization();

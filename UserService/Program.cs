@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using UserService;
 using UserService.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,7 +12,12 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<UserServiceContext>(options =>
-         options.UseInMemoryDatabase("user-db"));
+            options.UseSqlite(@"Data Source=user.db"));
+
+//options.UseInMemoryDatabase("user-db"));
+
+builder.Services.AddSingleton<IntegrationEventSenderService>();
+builder.Services.AddHostedService<IntegrationEventSenderService>(provider => provider.GetService<IntegrationEventSenderService>());
 
 var app = builder.Build();
 

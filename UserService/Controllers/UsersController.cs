@@ -29,11 +29,6 @@ public class UsersController : ControllerBase
     {
         // TOOO: Reuse and close connections and channel, etc, 
         var factory = new ConnectionFactory();
-        //{
-        //    HostName = "http://localhost:15672/",
-        //    UserName = "guest",
-        //    Password = "guest",
-        //};
         var connection = factory.CreateConnection();
         var channel = connection.CreateModel();
         var body = Encoding.UTF8.GetBytes(eventData);
@@ -46,6 +41,8 @@ public class UsersController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> PutUser(int id, User user)
     {
+        using var transaction = _context.Database.BeginTransaction();
+
         _context.Entry(user).State = EntityState.Modified;
         await _context.SaveChangesAsync();
 
@@ -54,7 +51,20 @@ public class UsersController : ControllerBase
             id = user.ID,
             newname = user.Name
         });
-        PublishToMessageQueue("user.update", integrationEventData);
+
+        //Publish event directly to the RabbitMQ as a message
+        //PublishToMessageQueue("user.update", integrationEventData);
+
+        //Insert event in Integeration Event Outbox as a message
+        _context.IntegrationEventOutbox.Add(
+                new IntegrationEvent
+                {
+                    Event = "user.update",
+                    Data = integrationEventData,
+                });
+
+        _context.SaveChanges();
+        transaction.Commit();
 
         return NoContent();
     }
@@ -62,6 +72,8 @@ public class UsersController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<User>> PostUser(User user)
     {
+        using var transaction = _context.Database.BeginTransaction();
+
         _context.User.Add(user);
         await _context.SaveChangesAsync();
 
@@ -70,7 +82,20 @@ public class UsersController : ControllerBase
             id = user.ID,
             name = user.Name
         });
-        PublishToMessageQueue("user.add", integrationEventData);
+
+        //Publish event directly to the RabbitMQ as a message
+        //PublishToMessageQueue("user.add", integrationEventData);
+
+        //Insert event in Integeration Event Outbox as a message
+        _context.IntegrationEventOutbox.Add(
+                new IntegrationEvent
+                {
+                    Event = "user.add",
+                    Data = integrationEventData,
+                });
+
+        _context.SaveChanges();
+        transaction.Commit();
 
         return CreatedAtAction("GetUser", new { id = user.ID }, user);
     }

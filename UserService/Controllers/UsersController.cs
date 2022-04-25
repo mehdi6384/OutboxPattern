@@ -13,10 +13,15 @@ namespace UserService.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly UserServiceContext _context;
+    private readonly IntegrationEventSenderService _integrationEventSenderService;
 
-    public UsersController(UserServiceContext context)
+    public UsersController(
+        UserServiceContext context, 
+        IntegrationEventSenderService integrationEventSenderService
+    )
     {
         _context = context;
+        _integrationEventSenderService = integrationEventSenderService;
     }
 
     [HttpGet]
@@ -49,7 +54,8 @@ public class UsersController : ControllerBase
         var integrationEventData = JsonConvert.SerializeObject(new
         {
             id = user.ID,
-            newname = user.Name
+            newname = user.Name,
+            newversion = user.Version,
         });
 
         //Publish event directly to the RabbitMQ as a message
@@ -65,6 +71,7 @@ public class UsersController : ControllerBase
 
         _context.SaveChanges();
         transaction.Commit();
+        _integrationEventSenderService.StartPublishingOutstandingIntegrationEvents();
 
         return NoContent();
     }
@@ -72,6 +79,8 @@ public class UsersController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<User>> PostUser(User user)
     {
+        user.Version = 1;
+
         using var transaction = _context.Database.BeginTransaction();
 
         _context.User.Add(user);
@@ -80,7 +89,8 @@ public class UsersController : ControllerBase
         var integrationEventData = JsonConvert.SerializeObject(new
         {
             id = user.ID,
-            name = user.Name
+            name = user.Name,
+            version = user.Version,
         });
 
         //Publish event directly to the RabbitMQ as a message
@@ -96,6 +106,7 @@ public class UsersController : ControllerBase
 
         _context.SaveChanges();
         transaction.Commit();
+        _integrationEventSenderService.StartPublishingOutstandingIntegrationEvents();
 
         return CreatedAtAction("GetUser", new { id = user.ID }, user);
     }

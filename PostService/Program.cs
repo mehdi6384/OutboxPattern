@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using PostService;
 using PostService.Data;
-using PostService.Helper;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,7 +11,14 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<PostServiceContext>(options =>
-         options.UseInMemoryDatabase("post-db"));
+            options.UseSqlite(@"Data Source=post.db"));
+//options.UseInMemoryDatabase("post-db")) ;
+
+builder.Services.AddSingleton<IntegrationEventListenerService>();
+builder.Services
+    .AddHostedService<IntegrationEventListenerService>(
+        provider => provider.GetService<IntegrationEventListenerService>()
+    );
 
 var app = builder.Build();
 
@@ -26,6 +33,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-Consume.ListenForIntegrationEvents();
+//Consume.ListenForIntegrationEvents();
 
 app.Run();

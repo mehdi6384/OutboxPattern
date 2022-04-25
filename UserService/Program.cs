@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
 using UserService;
 using UserService.Data;
 
@@ -17,7 +16,10 @@ builder.Services.AddDbContext<UserServiceContext>(options =>
 //options.UseInMemoryDatabase("user-db"));
 
 builder.Services.AddSingleton<IntegrationEventSenderService>();
-builder.Services.AddHostedService<IntegrationEventSenderService>(provider => provider.GetService<IntegrationEventSenderService>());
+builder.Services
+    .AddHostedService<IntegrationEventSenderService>(
+        provider => provider.GetService<IntegrationEventSenderService>()
+    );
 
 var app = builder.Build();
 
